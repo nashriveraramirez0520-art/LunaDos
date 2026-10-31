@@ -91,6 +91,179 @@ function printLine(text = "") {
     output.appendChild(line);
 }
 
+let snakeRunning = false;
+let snakeGameOver = false;
+let snake = [];
+let snakeDirection = {x: 1, y: 0};
+let snakeFood = {x: 0, y: 0};
+let snakeScore = 0;
+let snakeInterval = null;
+
+const snakeWidth = 28;
+const snakeHeight = 14;
+
+function startSnake() {
+    snakeRunning = true;
+    snakeGameOver = false;
+
+    snake = [
+        {x: 7, y: 7},
+        {x: 6, y: 7},
+        {x: 5, y: 7}
+    ];
+
+    snakeDirection = {x: 1, y: 0};
+    snakeScore = 0;
+
+    commandInput.style.display = "none";
+    prompt.style.display = "none";
+
+    createSnakeFood();
+    drawSnake();
+
+
+    if (snakeInterval !== null) {
+    clearInterval(snakeInterval);
+}
+
+    snakeInterval = setInterval(moveSnake, 150);
+}
+
+function createSnakeFood() {
+    let newFood;
+
+    do {
+        newFood = {
+            x: Math.floor(Math.random() * snakeWidth),
+            y: Math.floor(Math.random() * snakeHeight)
+        };
+    } while (
+        snake.some(function(segment) {
+            return segment.x === newFood.x && segment.y === newFood.y;
+        })
+    );
+    
+    snakeFood = newFood;
+}
+
+function drawSnake() {
+    let screen = "";
+
+    screen += "LUNADOS SNAKE\n";
+    screen += `SCORE: ${snakeScore}\n`;
+    screen += "+" + "-".repeat(snakeWidth) + "+\n";
+
+    for (let y = 0; y < snakeHeight; y++) {
+        let row = "|";
+
+        for (let x = 0; x < snakeWidth; x++) {
+            const snakeIndex = snake.findIndex(function(segment) {
+                return segment.x === x && segment.y === y;
+            });
+
+            if(snakeIndex === 0) {
+                if (snakeDirection.x === 1) {
+                    row += ">";
+                } else if (snakeDirection.x === -1) {
+                    row += "<";
+                } else if (snakeDirection.y === -1) {
+                    row += "^";
+                } else {
+                    row += "v";
+                }
+            } else if (snakeIndex > 0) {
+                row += "o";
+            } else if (snakeFood.x === x && snakeFood.y === y) {
+                row += "*";
+            } else {
+                row += " ";
+            }
+        }
+
+        row += "|";
+        screen += row + "\n";
+    }
+
+    screen += "+" + "-".repeat(snakeWidth) + "+\n";
+    screen += "Arrow keys = move | ESC = exit";
+
+    output.textContent = screen;
+}
+
+function moveSnake() {
+    const head = snake[0];
+
+    const newHead = {
+        x: head.x + snakeDirection.x,
+        y: head.y + snakeDirection.y
+    };
+
+    if (
+        newHead.x < 0 ||
+        newHead.x >= snakeWidth ||
+        newHead.y < 0 ||
+        newHead.y >= snakeHeight
+    ) {
+        endSnakeGame();
+        return;
+    }
+
+    if (
+        snake.some(function(segment) {
+            return segment.x === newHead.x && segment.y === newHead.y;
+        })
+    ) {
+        endSnakeGame();
+        return;
+    }
+
+    snake.unshift(newHead);
+
+    if (newHead.x === snakeFood.x && newHead.y === snakeFood.y) {
+        snakeScore++;
+        createSnakeFood();
+    } else {
+        snake.pop();
+    }
+
+    drawSnake();
+}
+
+function endSnakeGame() {
+    clearInterval(snakeInterval);
+    snakeInterval = null;
+    snakeGameOver = true;
+
+    drawSnake();
+
+    printLine("");
+    printLine("GAME OVER");
+    printLine(`FINAL SCORE: ${snakeScore}`);
+    printLine("");
+    printLine("Press ENTER to try again.");
+    printLine("Press ESC to return to LunaDOS.");
+}
+
+function exitSnake() {
+    if (snakeInterval !== null) {
+        clearInterval(snakeInterval);
+        snakeInterval = null;
+    }
+
+    snakeRunning = false;
+
+    output.replaceChildren();
+
+    commandInput.style.display = "";
+    prompt.style.display = "";
+
+    updatePrompt();
+    commandInput.value = "";
+    commandInput.focus();
+
+    printLine("Returned to LunaDOS.");
+}
+
 function runCommand(command) {
     const cleanCommand = command.trim();
     const parts = cleanCommand.split(" ");
@@ -114,6 +287,7 @@ function runCommand(command) {
             printLine("TYPE     Displays the contents of a text file.");
             printLine("MKDIR    Creates a new directory.");
             printLine("RMDIR    Removes an empty directory.");
+            printLine("DEL      Deletes a file.");
         },
 
         ver: function() {
@@ -267,8 +441,39 @@ function runCommand(command) {
             saveFileSystem();
 
             printLine(`Directory ${directoryName} removed.`);
+        },
+
+        del: function() {
+            if (args.length === 0) {
+                printLine("The syntax of the command is incorrect.");
+                return;
+            }
+
+            const fileName = args[0].toUpperCase();
+            const target = currentDirectory.children[fileName];
+
+            if (!target || target.type !== "file") {
+                printLine("File not found.");
+                return;
+            }
+
+            delete currentDirectory.children[fileName];
+            saveFileSystem();
+
+            printLine(`File ${fileName} deleted.`);
         }
     }
+    
+    const executableName = cleanCommand.toUpperCase();
+    const executable = currentDirectory.children[executableName];
+
+    if (executable && executable.type === "file" && executableName.endsWith(".EXE")) {
+        if (executableName === "SNAKE.EXE") {
+            startSnake();
+            return;
+        }
+    }
+
     
 
     const selectedCommand = commands[commandName];
@@ -280,7 +485,51 @@ function runCommand(command) {
     }
 }
 
-commandInput.addEventListener("keydown", function(event) {
+document.addEventListener("keydown", function(event) {
+    if (snakeRunning) {
+        if (event.key === "Escape") {
+            event.preventDefault();
+            exitSnake();
+            return;
+        }
+
+        if (snakeGameOver && event.key === "Enter") {
+            event.preventDefault();
+            startSnake();
+            return;
+        }
+
+        if (snakeInterval === null) {
+            return;
+        }
+
+        if (event.key === "ArrowUp" && snakeDirection.y !== 1) {
+            event.preventDefault();
+            snakeDirection = { x: 0, y: -1 };
+            return;
+        }
+
+        if (event.key === "ArrowDown" && snakeDirection.y !== -1) {
+            event.preventDefault();
+            snakeDirection = { x: 0, y: 1 };
+            return;
+        }
+
+        if (event.key === "ArrowLeft" && snakeDirection.x !== 1) {
+            event.preventDefault();
+            snakeDirection = { x: -1, y: 0 };
+            return;
+        }
+
+        if (event.key === "ArrowRight" && snakeDirection.x !== -1) {
+            event.preventDefault();
+            snakeDirection = { x: 1, y: 0 };
+            return;
+        }
+
+        return;
+    }
+
     if (event.key === "Enter") {
         const command = commandInput.value;
 
@@ -290,10 +539,4 @@ commandInput.addEventListener("keydown", function(event) {
         commandInput.value = "";
     }
 });
-
-document.addEventListener("click", function() {
-    commandInput.focus();
-});
-
-commandInput.focus();
 

@@ -43,3 +43,8 @@ body {
     font-size: 18px;
     caret-color: #33ff33;
 }
+
+#output {
+    line-height: 1;
+}
+
