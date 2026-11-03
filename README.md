@@ -1,3 +1,5 @@
+#LUNADOS
+
 This is a project for Terra's 2 week.
 
 Since the theme for this week was something antique, I decided to do an operational system inspired by classic DOS computers and early command-line interfaces.
