@@ -15,15 +15,25 @@ LunaDOS also has its own executable program (.EXE), The first executable program
 The current available commands for the LunaDOS are the following:
 
 *HELP, as its name sugguest is the list of all available commands.
+
 *VER, although symbolic, shows the version of the DOS.
+
 *ECHO, displays text on the screen.
+
 *CLS, cleans the screen.
+
 *DIR, shows the directory and its files.
+
 *CD, is used to navigate through the folders and files.
+
 *TYPE, is used yo write and create files.
+
 *MKDIR, makes a new directory.
+
 *RMDIR, deletes an empty directory.
+
 *DEL, deletes files.
+
 *REN, renames files or directorys.
 
 I want to improve a little more the DOS, but I don't know if I will since the new week has a terror theme.
